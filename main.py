@@ -40,32 +40,35 @@ def smac(ticker_df, short_lb=50, long_lb=200):
     signal_df['signal'] = np.where(signal_df['short_mav'] > signal_df['long_mav'], 1.0, 0.0)   
     signal_df['positions'] = signal_df['signal'].diff()
 
-    fig = plt.figure()
-    plt1 = fig.add_subplot(111, ylabel='Price')
-    ticker_df['Adj Close'].plot(ax=plt1, color='r', lw=2.)
-    signal_df[['short_mav', 'long_mav']].plot(ax=plt1, lw=2., figsize=(12,8))
-    plt1.plot(signal_df.loc[signal_df.positions == -1.0].index, signal_df.short_mav[signal_df.positions == -1.0],'v', markersize=10, color='k')
-    plt1.plot(signal_df.loc[signal_df.positions == 1.0].index, signal_df.short_mav[signal_df.positions == 1.0],'^', markersize=10, color='m')
-    plt.show()
+    # fig = plt.figure()
+    # plt1 = fig.add_subplot(111, ylabel='Price')
+    # ticker_df['Adj Close'].plot(ax=plt1, color='r', lw=2.)
+    # signal_df[['short_mav', 'long_mav']].plot(ax=plt1, lw=2., figsize=(12,8))
+    # plt1.plot(signal_df.loc[signal_df.positions == -1.0].index, signal_df.short_mav[signal_df.positions == -1.0],'v', markersize=10, color='k')
+    # plt1.plot(signal_df.loc[signal_df.positions == 1.0].index, signal_df.short_mav[signal_df.positions == 1.0],'^', markersize=10, color='m')
+    # plt.show()
 
     return signal_df['signal']
 
 
 ## RSI
-def rsi():
-    rsi_period = 14
-    rsi_df = pd.DataFrame(index=ticker_df.index)
-    rsi_df['returns'] = ticker_df['Adj Close'].pct_change()
+def rsi(ticker, period=14):
+    rsi_df = pd.DataFrame(index=ticker.index)
+    rsi_df['returns'] = ticker.pct_change()
     rsi_df['returns_gains'] = np.where(rsi_df['returns']>0, rsi_df['returns'], 0)
     rsi_df['returns_losses'] = np.where(rsi_df['returns']<0, rsi_df['returns'], 0)
-    rsi_df['returns_gains_avg'] = rsi_df['returns_gains'].rolling(rsi_period).mean()
-    rsi_df['returns_losses_avg'] = rsi_df['returns_losses'].rolling(rsi_period).mean().abs()
+    rsi_df['returns_gains_avg'] = rsi_df['returns_gains'].rolling(period).mean()
+    rsi_df['returns_losses_avg'] = rsi_df['returns_losses'].rolling(period).mean().abs()
     rsi_df['rsi'] = 100 - (100 / (1 + rsi_df['returns_gains_avg']/rsi_df['returns_losses_avg']))
-    
-    fig = plt.figure()
-    plt1 = fig.add_subplot(111, ylabel='RSI')
-    rsi_df['rsi'].plot(ax=plt1, color='r', lw=2.)
-    plt.show()
+    return rsi_df['rsi']
+
+def average_trading_range(ticker_df, period=14):
+    ticker_df['H-L'] = ticker_df['High'] - ticker_df['Low']
+    ticker_df['H-Cp'] = abs(ticker_df['High'] - ticker_df['Close'].shift())
+    ticker_df['L-Cp'] = abs(ticker_df['Low'] - ticker_df['Close'].shift())
+    ticker_df['TR'] = ticker_df[['H-L', 'H-Cp', 'L-Cp']].max(axis=1)
+    ticker_df['ATR'] = ticker_df['TR'].rolling(period).mean()
+    return ticker_df['ATR']
 
 
 def plot_series(*args):
@@ -76,6 +79,8 @@ def plot_series(*args):
         arg.plot(ax=plt1, lw=2.)
     
     plt.show()
+
+    return None
 
 
 def calculate_annualized_volatility(ticker, start=None, end=None, frequency='daily'):
@@ -112,9 +117,11 @@ def calculate_annualized_return(ticker, start=None, end=None):
 
 if __name__ == '__main__':
     ticker_df = download_ticker_data('ES=F')
+    average_trading_range(ticker_df)
     print(ticker_df)
     signal = smac(ticker_df)
     return_series = create_strategy_ticker_series(ticker_df['Adj Close'], signal, plot_results=False)
     print(calculate_annualized_volatility(return_series))
     print(calculate_annualized_return(return_series))
-    #rsi()
+    rsi = rsi(ticker_df['Adj Close'])
+    plot_series(rsi)
