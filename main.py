@@ -4,9 +4,25 @@ import yfinance as yf
 import matplotlib.pyplot as plt
 import warnings
 
+# PyPortfolioOpt
+# from pyfopt.expected_returns import mean_historical_return
+# from pypfopt.risk_models import CovarianceShrinkage
+
 
 def download_ticker_data(ticker, period='max'):
     return yf.download(tickers=ticker, period=period)
+
+
+def combine_tickers(ticker_dict):
+    ticker_list = []
+    for key in ticker_dict:
+        return_df = ticker_dict[key]
+        series = return_df['Close']
+        series.name = key
+        ticker_list.append(series)
+        
+    combined_tickers = pd.concat(ticker_list, axis=1)
+    return combined_tickers
 
 
 def create_strategy_ticker_series(ticker, signal, plot_results=False):
@@ -101,7 +117,6 @@ def plot_series(*args):
         arg.plot(ax=plt1, linewidth=2.)
     
     plt.show()
-
     return None
 
 
@@ -150,12 +165,15 @@ if __name__ == '__main__':
         'OJ=F', #Orange juice
     ]
 
-    ticker_dfs = []
+    ticker_dict = {}
     for ticker in ticker_names:
-        ticker_dfs.append(download_ticker_data(ticker))
-        break
+        ticker_dict[ticker] = download_ticker_data(ticker)
 
-    ticker_dfs[0]['sma'] = sma(ticker_dfs[0]['Adj Close'], period=10)
-    plot_series(ticker_dfs[0]['sma'], ticker_dfs[0]['Adj Close'])
+    combined_portfolio = combine_tickers(ticker_dict)
+    #print(combined_portfolio)
+
+    
+    ticker_dict['ES=F']['sma'] = sma(ticker_dict['ES=F']['Adj Close'], period=10)
+    plot_series(ticker_dict['ES=F']['sma'], ticker_dict['ES=F']['Adj Close'])
 
     print("Finish")
