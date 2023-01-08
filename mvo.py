@@ -2,6 +2,7 @@ from scipy.optimize import linprog
 from scipy.optimize import minimize
 import numpy as np
 
+# from external source
 # https://www.kaggle.com/code/vijipai/lesson-5-mean-variance-optimization-of-portfolios
 
 def MaximizeReturns(MeanReturns, PortfolioSize):
