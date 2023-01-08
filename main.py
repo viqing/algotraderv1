@@ -31,22 +31,22 @@ def smac_strategy(ticker, short_lb=50, long_lb=200):
     signal_df['short_mav'] = sma(ticker, short_lb)
     signal_df['long_mav'] = sma(ticker, long_lb)
     signal_df['signal'] = np.where(signal_df['short_mav'] > signal_df['long_mav'], 1.0, 0.0)
-    signal_df['signal'] = np.where(signal_df['short_mav'] < signal_df['long_mav'], -1.0, signal_df['signal'])
     signal_df['positions'] = signal_df['signal'].diff()
+    signal_df['signal'] = np.where(signal_df['short_mav'] < signal_df['long_mav'], -1.0, signal_df['signal'])
 
-    # fig = plt.figure()
-    # plt1 = fig.add_subplot(111, ylabel='Price')
-    # ticker_df['Adj Close'].plot(ax=plt1, color='r', lw=2.)
-    # signal_df[['short_mav', 'long_mav']].plot(ax=plt1, lw=2., figsize=(12,8))
-    # plt1.plot(signal_df.loc[signal_df.positions == -1.0].index, signal_df.short_mav[signal_df.positions == -1.0], 'v', markersize=10, color='k')
-    # plt1.plot(signal_df.loc[signal_df.positions == 1.0].index, signal_df.short_mav[signal_df.positions == 1.0], '^', markersize=10, color='m')
-    # plt.show()
+    fig = plt.figure()
+    plt1 = fig.add_subplot(111, ylabel='Price')
+    ticker.plot(ax=plt1, color='r', lw=2.)
+    signal_df[['short_mav', 'long_mav']].plot(ax=plt1, lw=2., figsize=(12,8))
+    plt1.plot(signal_df.loc[signal_df.positions == -1.0].index, signal_df.short_mav[signal_df.positions == -1.0], 'v', markersize=10, color='k')
+    plt1.plot(signal_df.loc[signal_df.positions == 1.0].index, signal_df.short_mav[signal_df.positions == 1.0], '^', markersize=10, color='m')
+    plt.show()
 
     return signal_df['signal']
 
 
 def sma(ticker, period):
-    return ticker.rolling(window=period, min_periods=None, center=False).mean()
+    return ticker.rolling(window=period, min_periods=period, center=False).mean()
 
 
 def ema(ticker, period):
@@ -73,12 +73,24 @@ def average_trading_range(ticker_df, period=14):
     return ticker_df['ATR']
 
 
-def bollinger_bands(ticker_df, period=20, m=2):
-    ticker_df['SMA'] = sma(ticker_df['Close'], period=period)
-    ticker_df['std'] = ticker_df['Close'].rolling(window=period, min_periods=None, center=False).std()
-    ticker_df['bolu'] = ticker_df['SMA'] + m * ticker_df['std']
-    ticker_df['bold'] = ticker_df['SMA'] - m * ticker_df['std']
-    return ticker_df['bolu'], ticker_df['bold']
+def macd(ticker, l_period=26, m_period=12, s_period=9):
+    macd_df = pd.DataFrame(index=ticker.index)
+    macd_df['l_EMA'] = ticker.ewm(span=l_period, min_periods=l_period, adjust=False).mean()
+    macd_df['m_EMA'] = ticker.ewm(span=m_period, min_periods=m_period, adjust=False).mean()
+    macd_df['macd'] = macd_df['m_EMA'] - macd_df['l_EMA']
+    macd_df['macd_s'] = macd_df['macd'].ewm(span=s_period, min_periods=s_period, adjust=False).mean()
+    macd_df['macd_d'] = macd_df['macd'] - macd_df['macd_s']
+    print(macd_df)
+    return macd_df['macd_d'], macd_df['macd'], macd_df['macd_s']
+
+
+def bollinger_bands(ticker, period=20, m=2):
+    bol_df = pd.DataFrame(index=ticker.index)
+    bol_df['SMA'] = sma(ticker, period=period)
+    bol_df['std'] = ticker.rolling(window=period, min_periods=period, center=False).std()
+    bol_df['bol_u'] = bol_df['SMA'] + m * bol_df['std']
+    bol_df['bol_d'] = bol_df['SMA'] - m * bol_df['std']
+    return bol_df['bol_u'], bol_df['bol_d']
 
 
 def plot_series(*args):
@@ -86,7 +98,7 @@ def plot_series(*args):
     plt1 = fig.add_subplot(111)
 
     for arg in args:
-        arg.plot(ax=plt1, lw=2.)
+        arg.plot(ax=plt1, linewidth=2.)
     
     plt.show()
 
@@ -120,13 +132,30 @@ def calculate_annualized_return(ticker, start=None, end=None):
     ticker = ticker.loc[(ticker.index >= start) & (ticker.index <=end)]
 
     tot_return = ticker.loc[ticker.index == end][0] / ticker.loc[ticker.index == start][0]
-    ann_return = np.power(1 + tot_return, 1 / ((end-start).days/365)) - 1
+    ann_return = np.power(1 + tot_return, 1 / np.max(1, ((end-start).days/365))) - 1
 
     return ann_return
 
 
 if __name__ == '__main__':
-    ticker_df = download_ticker_data('ES=F')
-    ticker_df['bolu'], ticker_df['bold'] = bollinger_bands(ticker_df)
-    ticker_df['sma'] = sma(ticker_df['Close'], period=10)
-    plot_series(ticker_df['Close'], ticker_df['bolu'], ticker_df['bold'], ticker_df['sma'])
+    
+    ticker_names = [
+        'ES=F', #S&P 500
+        'RTY=F', #Russell Mini 2000
+        'ZN=F', #10 year note
+        'ZT=F', #2 year note
+        'GC=F', #Gold
+        'SI=F', #Silver
+        'CL=F', #Crude oil
+        'OJ=F', #Orange juice
+    ]
+
+    ticker_dfs = []
+    for ticker in ticker_names:
+        ticker_dfs.append(download_ticker_data(ticker))
+        break
+
+    ticker_dfs[0]['sma'] = sma(ticker_dfs[0]['Adj Close'], period=10)
+    plot_series(ticker_dfs[0]['sma'], ticker_dfs[0]['Adj Close'])
+
+    print("Finish")
