@@ -4,6 +4,7 @@ import numpy as np
 
 # from external source
 # https://www.kaggle.com/code/vijipai/lesson-5-mean-variance-optimization-of-portfolios
+# 20230109 Shelved for later
 
 def MaximizeReturns(MeanReturns, PortfolioSize):
     c = (np.multiply(-1, MeanReturns))
