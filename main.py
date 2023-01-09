@@ -50,13 +50,13 @@ def smac_strategy(ticker, short_lb=50, long_lb=200):
     signal_df['positions'] = signal_df['signal'].diff()
     signal_df['signal'] = np.where(signal_df['short_mav'] < signal_df['long_mav'], -1.0, signal_df['signal'])
 
-    fig = plt.figure()
-    plt1 = fig.add_subplot(111, ylabel='Price')
-    ticker.plot(ax=plt1, color='r', lw=2.)
-    signal_df[['short_mav', 'long_mav']].plot(ax=plt1, lw=2., figsize=(12,8))
-    plt1.plot(signal_df.loc[signal_df.positions == -1.0].index, signal_df.short_mav[signal_df.positions == -1.0], 'v', markersize=10, color='k')
-    plt1.plot(signal_df.loc[signal_df.positions == 1.0].index, signal_df.short_mav[signal_df.positions == 1.0], '^', markersize=10, color='m')
-    plt.show()
+    # fig = plt.figure()
+    # plt1 = fig.add_subplot(111, ylabel='Price')
+    # ticker.plot(ax=plt1, color='r', lw=2.)
+    # signal_df[['short_mav', 'long_mav']].plot(ax=plt1, lw=2., figsize=(12,8))
+    # plt1.plot(signal_df.loc[signal_df.positions == -1.0].index, signal_df.short_mav[signal_df.positions == -1.0], 'v', markersize=10, color='k')
+    # plt1.plot(signal_df.loc[signal_df.positions == 1.0].index, signal_df.short_mav[signal_df.positions == 1.0], '^', markersize=10, color='m')
+    # plt.show()
 
     return signal_df['signal']
 
@@ -170,8 +170,12 @@ if __name__ == '__main__':
         ticker_dict[ticker] = download_ticker_data(ticker)
 
     combined_portfolio = combine_tickers(ticker_dict)
+    combined_portfolio = combined_portfolio.interpolate(method="linear")
     #print(combined_portfolio)
 
+    signal_portfolio = combined_portfolio.apply(lambda x: smac_strategy(x))
+
+    print('a')
     
     ticker_dict['ES=F']['sma'] = sma(ticker_dict['ES=F']['Adj Close'], period=10)
     plot_series(ticker_dict['ES=F']['sma'], ticker_dict['ES=F']['Adj Close'])
