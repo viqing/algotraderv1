@@ -6,6 +6,7 @@ import numpy as np
 # https://www.kaggle.com/code/vijipai/lesson-5-mean-variance-optimization-of-portfolios
 # 20230109 Shelved for later
 
+
 def MaximizeReturns(MeanReturns, PortfolioSize):
     c = (np.multiply(-1, MeanReturns))
     A = np.ones([PortfolioSize, 1]).T
@@ -64,6 +65,6 @@ def MinimizeRiskConstr(MeanReturns, CovarReturns, PortfolioSize, R):
     ub = 1
     bnds = tuple([(lb, ub) for x in xinit])
 
-    opt = minimize (f, args=(CovarReturns), method='trust-constr', x0=xinit, bounds=bnds, constraints=cons, tol=10**-3)
+    opt = minimize(f, args=(CovarReturns), method='trust-constr', x0=xinit, bounds=bnds, constraints=cons, tol=10**-3)
 
     return  opt

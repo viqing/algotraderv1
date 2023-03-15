@@ -4,6 +4,9 @@ import yfinance as yf
 import matplotlib.pyplot as plt
 import warnings
 
+import seaborn as sns
+import plotly.express as px
+
 # PyPortfolioOpt
 # from pyfopt.expected_returns import mean_historical_return
 # from pypfopt.risk_models import CovarianceShrinkage
@@ -138,6 +141,7 @@ def calculate_annualized_volatility(ticker, start=None, end=None, frequency='dai
     
     return vol
 
+
 def calculate_annualized_return(ticker, start=None, end=None):
 
     if start is None:
@@ -150,6 +154,12 @@ def calculate_annualized_return(ticker, start=None, end=None):
     ann_return = np.power(1 + tot_return, 1 / np.max(1, ((end-start).days/365))) - 1
 
     return ann_return
+
+
+def calc_returns(portfolio_df):
+    rets = portfolio_df.pct_change()
+    rets_cum = rets.add(1).cumprod().sub(1) * 100
+    return rets_cum
 
 
 if __name__ == '__main__':
@@ -170,14 +180,25 @@ if __name__ == '__main__':
         ticker_dict[ticker] = download_ticker_data(ticker)
 
     combined_portfolio = combine_tickers(ticker_dict)
-    combined_portfolio = combined_portfolio.interpolate(method="linear")
-    #print(combined_portfolio)
+    combined_portfolio_rets = calc_returns(combined_portfolio)
+
+    fig = px.line(
+        combined_portfolio_rets, 
+        x=combined_portfolio_rets.index, 
+        y=combined_portfolio_rets.columns, 
+        title='Cumulative Returns of Indices (2010-2020)'
+        )
+    fig.update_xaxes(title_text='Date')
+    fig.update_yaxes(title_text='Cumulative Return in %')
+    fig.show()
+
+    # print(combined_portfolio)
 
     signal_portfolio = combined_portfolio.apply(lambda x: smac_strategy(x))
 
     print('a')
     
-    ticker_dict['ES=F']['sma'] = sma(ticker_dict['ES=F']['Adj Close'], period=10)
-    plot_series(ticker_dict['ES=F']['sma'], ticker_dict['ES=F']['Adj Close'])
+    # ticker_dict['ES=F']['sma'] = sma(ticker_dict['ES=F']['Adj Close'], period=10)
+    # plot_series(ticker_dict['ES=F']['sma'], ticker_dict['ES=F']['Adj Close'])
 
     print("Finish")
