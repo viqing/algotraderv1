@@ -169,17 +169,16 @@ def plot_strategy_return_ticker_and_signals(index_df, signals_df):
     fig = plt.figure()
     plt1 = fig.add_subplot(111, ylabel='Price')
     index_df.plot(ax=plt1, color='rb', lw=2.)
-
+    #TODO Show buy/sell signals
     buy_sell_signals = signals_df.diff()
 
     # signal_df[['short_mav', 'long_mav']].plot(ax=plt1, lw=2., figsize=(12,8))
-    plt1.plot(buy_sell_signals.loc[buy_sell_signals == -1.0].index, buy_sell_signals.short_mav[buy_sell_signals == -1.0], 'v', markersize=10, color='k')
-    plt1.plot(buy_sell_signals.loc[buy_sell_signals == 1.0].index, buy_sell_signals.short_mav[buy_sell_signals == 1.0], '^', markersize=10, color='m')
+    # plt1.plot(buy_sell_signals.lo[buy_sell_signals == -1.0].index, buy_sell_signals.short_mav[buy_sell_signals == -1.0], 'v', markersize=10, color='k')
+    # plt1.plot(buy_sell_signals.loc[buy_sell_signals == 1.0].index, buy_sell_signals.short_mav[buy_sell_signals == 1.0], '^', markersize=10, color='m')
+    #bla bla bla
     plt.show()
 
     pass
-
-
 
 
 if __name__ == '__main__':
