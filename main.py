@@ -3,11 +3,14 @@ import numpy as np
 import yfinance as yf
 import matplotlib.pyplot as plt
 import warnings
+import math
 
 from strategies import simple_moving_average_strategy
 
 import seaborn as sns
 import plotly.express as px
+
+
 
 # PyPortfolioOpt
 # from pyfopt.expected_returns import mean_historical_return
@@ -165,10 +168,23 @@ def calculate_ticker_index_from_returns(returns_df):
     ticker_index = returns_df.add(1).cumprod().sub(1) * 100
     return ticker_index
 
-def plot_strategy_return_ticker_and_signals(index_df, signals_df):
-    fig = plt.figure()
-    plt1 = fig.add_subplot(111, ylabel='Price')
-    index_df.plot(ax=plt1, color='rb', lw=2.)
+def plot_strategy_return_ticker_and_signals(index_df, signals_df, n_cols=3):
+    
+    n_rows = math.ceil(len(index_df.columns) / n_cols)
+    fig, ax = plt.subplots(nrows=n_rows, ncols=n_cols)
+    fig.tight_layout()
+    for index, col in enumerate(index_df.columns):
+        i = math.floor(index / 3)
+        j = index % n_cols
+
+        # handle the fact that the ax array becomes 1-dimensional when shape is (1, z)
+        if len(index_df.columns)>n_cols:
+            index_df[col].plot(ax=ax[i, j], lw=2.)
+            ax[i, j].set_ylabel(col)
+        else:
+            index_df[col].plot(ax=ax[j], lw=2.)
+            ax[j].set_ylabel(col)
+
     #TODO Show buy/sell signals
     buy_sell_signals = signals_df.diff()
 
@@ -177,8 +193,6 @@ def plot_strategy_return_ticker_and_signals(index_df, signals_df):
     # plt1.plot(buy_sell_signals.loc[buy_sell_signals == 1.0].index, buy_sell_signals.short_mav[buy_sell_signals == 1.0], '^', markersize=10, color='m')
     #bla bla bla
     plt.show()
-
-    pass
 
 
 if __name__ == '__main__':
@@ -196,48 +210,49 @@ if __name__ == '__main__':
 
     ticker_names = [
         'ES=F', #S&P 500
-        'CL=F', #Crude oil
+        'RTY=F', #Russell Mini 2000
+        'ZN=F', #10 year note
     ]
 
     prices_df = download_ticker_adj_close_data(ticker_names)
     returns_df = calculate_returns_from_prices(prices_df)
     indices_df = calculate_ticker_index_from_returns(returns_df)
 
-    indices_df.plot()
+    #indices_df.plot()
 
     ma_signals = simple_moving_average_strategy(prices_df)
     strategy_returns = calculate_returns_from_prices_and_signals(prices_df, ma_signals)
     indices_strategy_df = calculate_ticker_index_from_returns(strategy_returns)
 
-    indices_strategy_df.plot()
+    #indices_strategy_df.plot()
 
-    plot_strategy_return_ticker_and_signals(indices_strategy_df, ma_signals)
+    plot_strategy_return_ticker_and_signals(indices_strategy_df, ma_signals, n_cols=3)
 
 
-    ticker_dict = {}
-    for ticker in ticker_names:
-        ticker_dict[ticker] = download_ticker_data(ticker)
+    # ticker_dict = {}
+    # for ticker in ticker_names:
+    #     ticker_dict[ticker] = download_ticker_data(ticker)
 
-    combined_portfolio = combine_tickers(ticker_dict)
-    combined_portfolio_rets = calc_returns(combined_portfolio)
+    # combined_portfolio = combine_tickers(ticker_dict)
+    # combined_portfolio_rets = calc_returns(combined_portfolio)
 
-    fig = px.line(
-        combined_portfolio_rets, 
-        x=combined_portfolio_rets.index, 
-        y=combined_portfolio_rets.columns, 
-        title='Cumulative Returns of Indices (2010-2020)'
-        )
-    fig.update_xaxes(title_text='Date')
-    fig.update_yaxes(title_text='Cumulative Return in %')
-    fig.show()
+    # fig = px.line(
+    #     combined_portfolio_rets, 
+    #     x=combined_portfolio_rets.index, 
+    #     y=combined_portfolio_rets.columns, 
+    #     title='Cumulative Returns of Indices (2010-2020)'
+    #     )
+    # fig.update_xaxes(title_text='Date')
+    # fig.update_yaxes(title_text='Cumulative Return in %')
+    # fig.show()
 
-    # print(combined_portfolio)
+    # # print(combined_portfolio)
 
-    signal_portfolio = combined_portfolio.apply(lambda x: smac_strategy(x))
+    # signal_portfolio = combined_portfolio.apply(lambda x: smac_strategy(x))
 
-    print('a')
+    # print('a')
     
-    # ticker_dict['ES=F']['sma'] = sma(ticker_dict['ES=F']['Adj Close'], period=10)
-    # plot_series(ticker_dict['ES=F']['sma'], ticker_dict['ES=F']['Adj Close'])
+    # # ticker_dict['ES=F']['sma'] = sma(ticker_dict['ES=F']['Adj Close'], period=10)
+    # # plot_series(ticker_dict['ES=F']['sma'], ticker_dict['ES=F']['Adj Close'])
 
-    print("Finish")
+    # print("Finish")
