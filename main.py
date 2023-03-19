@@ -4,6 +4,8 @@ import yfinance as yf
 import matplotlib.pyplot as plt
 import warnings
 
+from strategies import simple_moving_average_strategy
+
 import seaborn as sns
 import plotly.express as px
 
@@ -14,6 +16,10 @@ import plotly.express as px
 
 def download_ticker_data(ticker, period='max'):
     return yf.download(tickers=ticker, period=period)
+
+
+def download_ticker_adj_close_data(ticker, period='max'):
+    return yf.download(tickers=ticker, period=period)['Adj Close']
 
 
 def combine_tickers(ticker_dict):
@@ -53,20 +59,11 @@ def smac_strategy(ticker, short_lb=50, long_lb=200):
     signal_df['positions'] = signal_df['signal'].diff()
     signal_df['signal'] = np.where(signal_df['short_mav'] < signal_df['long_mav'], -1.0, signal_df['signal'])
 
-    # fig = plt.figure()
-    # plt1 = fig.add_subplot(111, ylabel='Price')
-    # ticker.plot(ax=plt1, color='r', lw=2.)
-    # signal_df[['short_mav', 'long_mav']].plot(ax=plt1, lw=2., figsize=(12,8))
-    # plt1.plot(signal_df.loc[signal_df.positions == -1.0].index, signal_df.short_mav[signal_df.positions == -1.0], 'v', markersize=10, color='k')
-    # plt1.plot(signal_df.loc[signal_df.positions == 1.0].index, signal_df.short_mav[signal_df.positions == 1.0], '^', markersize=10, color='m')
-    # plt.show()
-
     return signal_df['signal']
 
 
 def sma(ticker, period):
-    return ticker.rolling(window=period, min_periods=period, center=False).mean()
-
+    return ticker.rolling(window=period).mean()
 
 def ema(ticker, period):
     return ticker.ewm(span=period, adjust=False).mean()
@@ -129,7 +126,6 @@ def calculate_annualized_volatility(ticker, start=None, end=None, frequency='dai
         start = ticker.index.min()
     if end is None:
         end = ticker.index.max()
-    
     ticker = ticker.loc[(ticker.index >= start) & (ticker.index <=end)]
     ticker_return = ticker.pct_change()
     vol = ticker_return.std()
@@ -156,10 +152,34 @@ def calculate_annualized_return(ticker, start=None, end=None):
     return ann_return
 
 
-def calc_returns(portfolio_df):
-    rets = portfolio_df.pct_change()
-    rets_cum = rets.add(1).cumprod().sub(1) * 100
-    return rets_cum
+def calculate_returns_from_prices(prices_df):
+    return prices_df.pct_change()
+
+
+def calculate_returns_from_prices_and_signals(prices_df, signals_df):
+    returns_df = calculate_returns_from_prices(prices_df)
+    return returns_df * signals_df.shift(1).values
+
+
+def calculate_ticker_index_from_returns(returns_df):
+    ticker_index = returns_df.add(1).cumprod().sub(1) * 100
+    return ticker_index
+
+def plot_strategy_return_ticker_and_signals(index_df, signals_df):
+    fig = plt.figure()
+    plt1 = fig.add_subplot(111, ylabel='Price')
+    index_df.plot(ax=plt1, color='rb', lw=2.)
+
+    buy_sell_signals = signals_df.diff()
+
+    # signal_df[['short_mav', 'long_mav']].plot(ax=plt1, lw=2., figsize=(12,8))
+    plt1.plot(buy_sell_signals.loc[buy_sell_signals == -1.0].index, buy_sell_signals.short_mav[buy_sell_signals == -1.0], 'v', markersize=10, color='k')
+    plt1.plot(buy_sell_signals.loc[buy_sell_signals == 1.0].index, buy_sell_signals.short_mav[buy_sell_signals == 1.0], '^', markersize=10, color='m')
+    plt.show()
+
+    pass
+
+
 
 
 if __name__ == '__main__':
@@ -174,6 +194,26 @@ if __name__ == '__main__':
         'CL=F', #Crude oil
         'OJ=F', #Orange juice
     ]
+
+    ticker_names = [
+        'ES=F', #S&P 500
+        'CL=F', #Crude oil
+    ]
+
+    prices_df = download_ticker_adj_close_data(ticker_names)
+    returns_df = calculate_returns_from_prices(prices_df)
+    indices_df = calculate_ticker_index_from_returns(returns_df)
+
+    indices_df.plot()
+
+    ma_signals = simple_moving_average_strategy(prices_df)
+    strategy_returns = calculate_returns_from_prices_and_signals(prices_df, ma_signals)
+    indices_strategy_df = calculate_ticker_index_from_returns(strategy_returns)
+
+    indices_strategy_df.plot()
+
+    plot_strategy_return_ticker_and_signals(indices_strategy_df, ma_signals)
+
 
     ticker_dict = {}
     for ticker in ticker_names:
