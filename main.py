@@ -22,7 +22,14 @@ def download_ticker_data(ticker, period='max'):
 
 
 def download_ticker_adj_close_data(ticker, period='max'):
-    return yf.download(tickers=ticker, period=period)['Adj Close']
+    df = yf.download(tickers=ticker, period=period)['Adj Close']
+
+    if len(ticker) == 1:
+        df = pd.DataFrame(df)
+        df = df.rename(columns={'Adj Close': ticker[0]})
+        return df
+
+    return df
 
 
 def combine_tickers(ticker_dict):
@@ -172,6 +179,9 @@ def plot_strategy_return_ticker_and_signals(index_df, signals_df, n_cols=3):
     
     n_rows = math.ceil(len(index_df.columns) / n_cols)
     fig, ax = plt.subplots(nrows=n_rows, ncols=n_cols)
+
+    buy_sell_signals = signals_df.diff()
+
     fig.tight_layout()
     for index, col in enumerate(index_df.columns):
         i = math.floor(index / 3)
@@ -180,9 +190,14 @@ def plot_strategy_return_ticker_and_signals(index_df, signals_df, n_cols=3):
         # handle the fact that the ax array becomes 1-dimensional when shape is (1, z)
         if len(index_df.columns)>n_cols:
             index_df[col].plot(ax=ax[i, j], lw=2.)
+            b_s_signal = buy_sell_signals.iloc[:, index]
+            ax[i, j].plot(b_s_signal.loc[b_s_signal == -1.0].index, b_s_signal.loc[b_s_signal == -1.0], 'v', markersize=10, color='k')
+            ax[i, j].plot(b_s_signal.loc[b_s_signal ==  1.0].index, b_s_signal.loc[b_s_signal ==  1.0], '^', markersize=10, color='k')
             ax[i, j].set_ylabel(col)
         else:
             index_df[col].plot(ax=ax[j], lw=2.)
+            ax[j].plot(b_s_signal.loc[b_s_signal == -1.0].index, b_s_signal.loc[b_s_signal == -1.0], 'v', markersize=10, color='k')
+            ax[j].plot(b_s_signal.loc[b_s_signal ==  1.0].index, b_s_signal.loc[b_s_signal ==  1.0], '^', markersize=10, color='k')
             ax[j].set_ylabel(col)
 
     #TODO Show buy/sell signals
@@ -208,25 +223,24 @@ if __name__ == '__main__':
         'OJ=F', #Orange juice
     ]
 
-    ticker_names = [
-        'ES=F', #S&P 500
-        'RTY=F', #Russell Mini 2000
-        'ZN=F', #10 year note
+    ticker_name = [
+        'CL=F', #Crude oil
+        #'ES=F', #S&P 500
     ]
 
-    prices_df = download_ticker_adj_close_data(ticker_names)
+    prices_df = download_ticker_adj_close_data(ticker_name)
     returns_df = calculate_returns_from_prices(prices_df)
     indices_df = calculate_ticker_index_from_returns(returns_df)
 
-    #indices_df.plot()
+    indices_df.plot()
 
     ma_signals = simple_moving_average_strategy(prices_df)
     strategy_returns = calculate_returns_from_prices_and_signals(prices_df, ma_signals)
     indices_strategy_df = calculate_ticker_index_from_returns(strategy_returns)
 
-    #indices_strategy_df.plot()
+    indices_strategy_df.plot()
 
-    plot_strategy_return_ticker_and_signals(indices_strategy_df, ma_signals, n_cols=3)
+    #plot_strategy_return_ticker_and_signals(indices_strategy_df.iloc[:, 0], ma_signals.iloc[:, 0], n_cols=3)
 
 
     # ticker_dict = {}
