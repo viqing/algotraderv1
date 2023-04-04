@@ -210,63 +210,58 @@ def plot_strategy_return_ticker_and_signals(index_df, signals_df, n_cols=3):
     plt.show()
 
 
+def calculate_portfolio_weights(signals_df):
+
+    weights_df = pd.DataFrame(columns=signals_df.columns,
+                              index=signals_df.index)
+
+    weights_df = signals_df.div(signals_df.abs().sum(axis=1), axis=0)
+
+    #for index, row in signals_df.iterrows():
+
+        #total = row.abs().sum()
+        #weights = row.div(total)
+        #weights_df[index] = weights
+
+    print(weights_df.tail())
+    pass
+
+class Portfolio:
+    def __init__(self):
+        self.portfolio_tickers = []
+
+    def add_tickers(self, ticker):
+        if isinstance(ticker, list):
+            self.portfolio_tickers.extend(ticker)
+        else:
+            self.portfolio_tickers.append(ticker)
+
+    
+
+
 if __name__ == '__main__':
     
     ticker_names = [
+        'CL=F', #Crude oil
         'ES=F', #S&P 500
-        'RTY=F', #Russell Mini 2000
-        'ZN=F', #10 year note
-        'ZT=F', #2 year note
-        'GC=F', #Gold
-        'SI=F', #Silver
-        'CL=F', #Crude oil
-        'OJ=F', #Orange juice
     ]
 
-    ticker_name = [
-        'CL=F', #Crude oil
-        #'ES=F', #S&P 500
-    ]
+    portfolio_1 = Portfolio()
+    portfolio_1.add_tickers(ticker_names)
+    print(portfolio_1.portfolio_tickers)
 
-    prices_df = download_ticker_adj_close_data(ticker_name)
-    returns_df = calculate_returns_from_prices(prices_df)
-    indices_df = calculate_ticker_index_from_returns(returns_df)
+    prices = download_ticker_adj_close_data(portfolio_1.portfolio_tickers)
+    signals = simple_moving_average_strategy(prices)
+    calculate_portfolio_weights(signals)
 
-    indices_df.plot()
+    
+    print(signals.head())
 
-    ma_signals = simple_moving_average_strategy(prices_df)
-    strategy_returns = calculate_returns_from_prices_and_signals(prices_df, ma_signals)
+    ma_signals = simple_moving_average_strategy(prices)
+    strategy_returns = calculate_returns_from_prices_and_signals(prices, signals)
     indices_strategy_df = calculate_ticker_index_from_returns(strategy_returns)
 
     indices_strategy_df.plot()
 
     #plot_strategy_return_ticker_and_signals(indices_strategy_df.iloc[:, 0], ma_signals.iloc[:, 0], n_cols=3)
 
-
-    # ticker_dict = {}
-    # for ticker in ticker_names:
-    #     ticker_dict[ticker] = download_ticker_data(ticker)
-
-    # combined_portfolio = combine_tickers(ticker_dict)
-    # combined_portfolio_rets = calc_returns(combined_portfolio)
-
-    # fig = px.line(
-    #     combined_portfolio_rets, 
-    #     x=combined_portfolio_rets.index, 
-    #     y=combined_portfolio_rets.columns, 
-    #     title='Cumulative Returns of Indices (2010-2020)'
-    #     )
-    # fig.update_xaxes(title_text='Date')
-    # fig.update_yaxes(title_text='Cumulative Return in %')
-    # fig.show()
-
-    # # print(combined_portfolio)
-
-    # signal_portfolio = combined_portfolio.apply(lambda x: smac_strategy(x))
-
-    # print('a')
-    
-    # # ticker_dict['ES=F']['sma'] = sma(ticker_dict['ES=F']['Adj Close'], period=10)
-    # # plot_series(ticker_dict['ES=F']['sma'], ticker_dict['ES=F']['Adj Close'])
-
-    # print("Finish")
