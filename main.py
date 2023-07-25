@@ -237,8 +237,6 @@ class Portfolio:
             self.portfolio_tickers.append(ticker)
 
     
-
-
 if __name__ == '__main__':
     
     ticker_names = [
